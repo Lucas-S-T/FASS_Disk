@@ -1,4 +1,5 @@
 import json
+import os
 import sys
 import threading
 import time
@@ -16,6 +17,11 @@ def process_fass(conn, addr, obj):
         conn.close()
         return
 
+    if obj["op"] == 10:
+        process_file(conn, addr, obj)
+        conn.close()
+        return
+
     if obj["op"] == 12:
         process_bye(conn, addr, obj)
         conn.close()
@@ -25,6 +31,8 @@ def process_fass(conn, addr, obj):
         process_disk_info(conn, addr, obj)
         conn.close()
         return
+
+
 
 
 def process_bye(conn, addr, obj):
@@ -46,4 +54,20 @@ def process_disk_info(conn, addr, obj):
 
     conn.send(b"FASS"+bytes(json.dumps(obj), "utf-8"))
 
-    pass
+
+def process_file(conn, addr, obj):
+
+    files = []
+    dirs = []
+
+    for f in os.scandir(args.path+"/"+obj["data"]["path"]):
+        if f.is_dir():
+            dirs.append(f.name)
+        else:
+            files.append(f.name)
+
+    obj = {"op": 11, "data": {"files": files, "dirs": dirs}}
+
+    conn.send(b"FASS"+bytes(json.dumps(obj), "utf-8"))
+    conn.close()
+
